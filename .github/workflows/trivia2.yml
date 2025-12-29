@@ -1,0 +1,104 @@
+name: Trivia2
+
+on:
+  schedule:
+    - cron: '0 23 * * *'
+    - cron: '0 2 * * *'
+    - cron: '0 5 * * *'
+    - cron: '0 9 * * *'
+    - cron: '0 12 * * *'
+  workflow_dispatch:
+    inputs:
+      distribute:
+        description: 'Distribute'
+        required: false
+        default: 'true'
+        type: choice
+        options:
+          - 'true'
+          - 'false'
+
+env:
+  NODE_VERSION: '20'
+  PYTHON_VERSION: '3.11'
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout main project
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ github.repository_owner }}/automate-shorts
+          token: ${{ secrets.CROSS_REPO_PAT }}
+          path: 'main'
+
+      - name: Checkout Remotion project
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ github.repository_owner }}/remotion-renderer
+          token: ${{ secrets.CROSS_REPO_PAT }}
+          path: 'main/remotion-renderer'
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: main/package-lock.json
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+
+      - name: Cache Whisper model
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/huggingface/hub
+          key: whisper-model-small-v1
+          restore-keys: whisper-model-
+
+      - name: Install Python dependencies
+        run: pip install --upgrade pip && pip install faster-whisper
+
+      - name: Install dependencies
+        run: cd main && npm ci
+
+      - name: Install Remotion dependencies
+        run: cd main/remotion-renderer && npm ci
+
+      - name: Install FFmpeg
+        uses: FedericoCarboni/setup-ffmpeg@v3
+        with:
+          ffmpeg-version: release
+
+      - name: Install Chrome
+        run: npx puppeteer browsers install chrome
+
+      - name: Setup credentials
+        run: echo '${{ secrets.GOOGLE_SERVICE_ACCOUNT_JSON }}' > /tmp/gcp-credentials.json
+
+      - name: Generate and Distribute
+        working-directory: main
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          PEXELS_API_KEY: ${{ secrets.PEXELS_API_KEY }}
+          LATE_API_KEY: ${{ secrets.LATE_API_KEY }}
+          GOOGLE_SHEETS_ID: ${{ secrets.GOOGLE_SHEETS_ID }}
+          GOOGLE_SERVICE_ACCOUNT_KEY: /tmp/gcp-credentials.json
+          TRIVIA2_PLATFORMS: 'instagram,tiktok,twitter,youtube'
+          REMOTION_PATH: ./remotion-renderer
+        run: |
+          if [ "${{ github.event.inputs.distribute }}" = "false" ]; then
+            npm run generate:trivia2
+          else
+            npm run generate:trivia2:distribute
+          fi
+
+      - name: Cleanup
+        if: always()
+        run: rm -f /tmp/gcp-credentials.json
