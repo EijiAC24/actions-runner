@@ -35,13 +35,6 @@ jobs:
           token: ${{ secrets.CROSS_REPO_PAT }}
           path: 'main'
 
-      - name: Checkout Remotion project
-        uses: actions/checkout@v4
-        with:
-          repository: ${{ github.repository_owner }}/remotion-renderer
-          token: ${{ secrets.CROSS_REPO_PAT }}
-          path: 'main/remotion-renderer'
-
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
@@ -68,9 +61,6 @@ jobs:
       - name: Install dependencies
         run: cd main && npm ci
 
-      - name: Install Remotion dependencies
-        run: cd main/remotion-renderer && npm ci
-
       - name: Install FFmpeg
         uses: FedericoCarboni/setup-ffmpeg@v3
         with:
@@ -91,7 +81,6 @@ jobs:
           GOOGLE_SHEETS_ID: ${{ secrets.GOOGLE_SHEETS_ID }}
           GOOGLE_SERVICE_ACCOUNT_KEY: /tmp/gcp-credentials.json
           TRIVIA2_PLATFORMS: 'instagram,tiktok,twitter,youtube'
-          REMOTION_PATH: ./remotion-renderer
         run: |
           if [ "${{ github.event.inputs.distribute }}" = "false" ]; then
             npm run generate:trivia2
