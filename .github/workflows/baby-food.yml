@@ -1,0 +1,63 @@
+name: Baby Food
+
+on:
+  schedule:
+    # 12:00 UTC = UK 12:00 / US East 07:00 / US West 04:00
+    - cron: '0 12 * * *'
+    # 15:00 UTC = UK 15:00 / US East 10:00 / US West 07:00
+    - cron: '0 15 * * *'
+    # 18:00 UTC = UK 18:00 / US East 13:00 / US West 10:00
+    - cron: '0 18 * * *'
+    # 21:00 UTC = UK 21:00 / US East 16:00 / US West 13:00
+    - cron: '0 21 * * *'
+    # 23:00 UTC = UK 23:00 / US East 18:00 / US West 15:00
+    - cron: '0 23 * * *'
+  workflow_dispatch:
+
+env:
+  NODE_VERSION: '20'
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout main project
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ github.repository_owner }}/automate-shorts
+          token: ${{ secrets.CROSS_REPO_PAT }}
+          path: 'main'
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: main/package-lock.json
+
+      - name: Install dependencies
+        run: cd main && npm ci
+
+      - name: Setup credentials
+        run: echo '${{ secrets.GOOGLE_SERVICE_ACCOUNT_JSON }}' > /tmp/gcp-credentials.json
+
+      - name: Generate Baby Food Video
+        working-directory: main
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          REPLICATE_API_TOKEN: ${{ secrets.REPLICATE_API_TOKEN }}
+          LATE_API_KEY: ${{ secrets.LATE_API_KEY }}
+          GOOGLE_SHEETS_ID: ${{ secrets.GOOGLE_SHEETS_ID }}
+          GOOGLE_SERVICE_ACCOUNT_KEY: /tmp/gcp-credentials.json
+          FTP_HOST: ${{ secrets.FTP_HOST }}
+          FTP_USER: ${{ secrets.FTP_USER }}
+          FTP_PASS: ${{ secrets.FTP_PASS }}
+          PUSHOVER_USER_KEY: ${{ secrets.PUSHOVER_USER_KEY }}
+          PUSHOVER_API_TOKEN: ${{ secrets.PUSHOVER_API_TOKEN }}
+        run: npm run generate:baby-food
+
+      - name: Cleanup
+        if: always()
+        run: rm -f /tmp/gcp-credentials.json
