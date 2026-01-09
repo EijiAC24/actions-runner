@@ -1,14 +1,14 @@
 name: Tough Love
 
 on:
-  schedule:
-    # UK/US向け 1日3回
-    # 08:00 UTC = 8AM UK / 3AM US East
-    - cron: '0 8 * * *'
-    # 13:00 UTC = 1PM UK / 8AM US East
-    - cron: '0 13 * * *'
-    # 23:00 UTC = 11PM UK / 6PM US East
-    - cron: '0 23 * * *'
+  # schedule:
+  #   # UK/US向け 1日3回
+  #   # 08:00 UTC = 8AM UK / 3AM US East
+  #   - cron: '0 8 * * *'
+  #   # 13:00 UTC = 1PM UK / 8AM US East
+  #   - cron: '0 13 * * *'
+  #   # 23:00 UTC = 11PM UK / 6PM US East
+  #   - cron: '0 23 * * *'
   workflow_dispatch:
 
 env:

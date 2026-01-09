@@ -1,17 +1,17 @@
 name: Baby Food
 
 on:
-  schedule:
-    # 12:00 UTC = UK 12:00 / US East 07:00 / US West 04:00
-    - cron: '0 12 * * *'
-    # 15:00 UTC = UK 15:00 / US East 10:00 / US West 07:00
-    - cron: '0 15 * * *'
-    # 18:00 UTC = UK 18:00 / US East 13:00 / US West 10:00
-    - cron: '0 18 * * *'
-    # 21:00 UTC = UK 21:00 / US East 16:00 / US West 13:00
-    - cron: '0 21 * * *'
-    # 23:00 UTC = UK 23:00 / US East 18:00 / US West 15:00
-    - cron: '0 23 * * *'
+  # schedule:
+  #   # 12:00 UTC = UK 12:00 / US East 07:00 / US West 04:00
+  #   - cron: '0 12 * * *'
+  #   # 15:00 UTC = UK 15:00 / US East 10:00 / US West 07:00
+  #   - cron: '0 15 * * *'
+  #   # 18:00 UTC = UK 18:00 / US East 13:00 / US West 10:00
+  #   - cron: '0 18 * * *'
+  #   # 21:00 UTC = UK 21:00 / US East 16:00 / US West 13:00
+  #   - cron: '0 21 * * *'
+  #   # 23:00 UTC = UK 23:00 / US East 18:00 / US West 15:00
+  #   - cron: '0 23 * * *'
   workflow_dispatch:
 
 env:
