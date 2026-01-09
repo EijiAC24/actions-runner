@@ -1,0 +1,72 @@
+name: Tough Love
+
+on:
+  schedule:
+    # UK/US向け 1日3回
+    # 08:00 UTC = 8AM UK / 3AM US East
+    - cron: '0 8 * * *'
+    # 13:00 UTC = 1PM UK / 8AM US East
+    - cron: '0 13 * * *'
+    # 23:00 UTC = 11PM UK / 6PM US East
+    - cron: '0 23 * * *'
+  workflow_dispatch:
+
+env:
+  NODE_VERSION: '20'
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout main project
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ github.repository_owner }}/automate-shorts
+          token: ${{ secrets.CROSS_REPO_PAT }}
+          path: 'main'
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: main/package-lock.json
+
+      - name: Install dependencies
+        run: cd main && npm ci
+
+      - name: Setup credentials
+        run: echo '${{ secrets.GOOGLE_SERVICE_ACCOUNT_JSON }}' > /tmp/gcp-credentials.json
+
+      - name: Generate Tough Love Video
+        working-directory: main
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          REPLICATE_API_TOKEN: ${{ secrets.REPLICATE_API_TOKEN }}
+          LATE_API_KEY: ${{ secrets.LATE_API_KEY }}
+          GOOGLE_SHEETS_ID: ${{ secrets.GOOGLE_SHEETS_ID }}
+          GOOGLE_SERVICE_ACCOUNT_KEY: /tmp/gcp-credentials.json
+          FTP_HOST: ${{ secrets.FTP_HOST }}
+          FTP_USER: ${{ secrets.FTP_USER }}
+          FTP_PASS: ${{ secrets.FTP_PASS }}
+          PUSHOVER_USER_KEY: ${{ secrets.PUSHOVER_USER_KEY }}
+          PUSHOVER_API_TOKEN: ${{ secrets.PUSHOVER_API_TOKEN }}
+        run: npx tsx scripts/run-tough-love-pipeline.ts
+
+      - name: Cleanup credentials
+        if: always()
+        run: rm -f /tmp/gcp-credentials.json
+
+      - name: Delete old workflow runs
+        if: always()
+        env:
+          GH_TOKEN: ${{ secrets.CROSS_REPO_PAT }}
+        run: |
+          # Delete all previous runs except the current one
+          gh run list --repo ${{ github.repository }} --workflow "Tough Love" --json databaseId --jq '.[].databaseId' | while read id; do
+            if [ "$id" != "${{ github.run_id }}" ]; then
+              gh run delete "$id" --repo ${{ github.repository }} || true
+            fi
+          done
