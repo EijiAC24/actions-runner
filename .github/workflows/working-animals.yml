@@ -1,4 +1,4 @@
-name: Baby Food
+name: Working Animals
 
 on:
   # schedule:
@@ -43,7 +43,7 @@ jobs:
       - name: Setup credentials
         run: echo '${{ secrets.GOOGLE_SERVICE_ACCOUNT_JSON }}' > /tmp/gcp-credentials.json
 
-      - name: Generate Baby Food Video
+      - name: Generate Working Animals Video
         working-directory: main
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
@@ -57,7 +57,7 @@ jobs:
           PUSHOVER_USER_KEY: ${{ secrets.PUSHOVER_USER_KEY }}
           PUSHOVER_API_TOKEN: ${{ secrets.PUSHOVER_API_TOKEN }}
           SKIP_C2PA: 'true'
-        run: npm run generate:baby-food
+        run: npm run generate:working-animals
 
       - name: Cleanup credentials
         if: always()
@@ -69,7 +69,7 @@ jobs:
           GH_TOKEN: ${{ secrets.CROSS_REPO_PAT }}
         run: |
           # Delete all previous runs except the current one
-          gh run list --repo ${{ github.repository }} --workflow "Baby Food" --json databaseId --jq '.[].databaseId' | while read id; do
+          gh run list --repo ${{ github.repository }} --workflow "Working Animals" --json databaseId --jq '.[].databaseId' | while read id; do
             if [ "$id" != "${{ github.run_id }}" ]; then
               gh run delete "$id" --repo ${{ github.repository }} || true
             fi
