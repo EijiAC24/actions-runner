@@ -1,16 +1,12 @@
 name: Cryptid Creatures
 
 on:
-  # schedule:
-  #   # UK/US向け 1日4回
-  #   # 08:00 UTC = 8AM UK / 3AM US East
-  #   - cron: '0 8 * * *'
-  #   # 12:00 UTC = 12PM UK / 7AM US East
-  #   - cron: '0 12 * * *'
-  #   # 17:00 UTC = 5PM UK / 12PM US East
-  #   - cron: '0 17 * * *'
-  #   # 22:00 UTC = 10PM UK / 5PM US East
-  #   - cron: '0 22 * * *'
+  schedule:
+    # UK/US向け 1日2回
+    # 08:00 UTC = 8AM UK / 3AM US East
+    - cron: '0 8 * * *'
+    # 20:00 UTC = 8PM UK / 3PM US East
+    - cron: '0 20 * * *'
   workflow_dispatch:
 
 env:
