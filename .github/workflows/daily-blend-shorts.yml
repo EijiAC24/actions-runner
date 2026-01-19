@@ -41,7 +41,7 @@ jobs:
       - name: Checkout main project
         uses: actions/checkout@v4
         with:
-          repository: ${{ github.repository_owner }}/dailyblend-automation
+          repository: ${{ github.repository_owner }}/DailyBlendPodcast
           token: ${{ secrets.CROSS_REPO_PAT }}
           path: 'main'
 
