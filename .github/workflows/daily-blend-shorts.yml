@@ -1,0 +1,133 @@
+name: Daily Blend Short Videos
+
+on:
+  workflow_dispatch:
+    inputs:
+      episode_number:
+        description: 'Episode number (e.g., 152)'
+        required: true
+        type: string
+      short_data_url:
+        description: 'URL to short video data JSON (optional)'
+        required: false
+        type: string
+      platform:
+        description: 'Target platform'
+        required: true
+        type: choice
+        options:
+          - instagram
+          - youtube
+          - tiktok
+          - all
+        default: 'all'
+      cover_url:
+        description: 'Cover image URL (optional)'
+        required: false
+        type: string
+
+  repository_dispatch:
+    types: [generate-daily-blend-shorts]
+
+env:
+  NODE_VERSION: '20'
+
+jobs:
+  generate-short:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout main project
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ github.repository_owner }}/dailyblend-automation
+          token: ${{ secrets.CROSS_REPO_PAT }}
+          path: 'main'
+
+      - name: Set episode configuration
+        id: set-episode
+        run: |
+          if [ -n "${{ inputs.episode_number }}" ]; then
+            echo "episode=${{ inputs.episode_number }}" >> $GITHUB_OUTPUT
+            echo "short_data_url=${{ inputs.short_data_url }}" >> $GITHUB_OUTPUT
+            echo "platform=${{ inputs.platform }}" >> $GITHUB_OUTPUT
+            echo "thumbnail_url=${{ inputs.cover_url }}" >> $GITHUB_OUTPUT
+          else
+            echo "episode=${{ github.event.client_payload.episode }}" >> $GITHUB_OUTPUT
+            echo "short_data_url=${{ github.event.client_payload.short_data_url }}" >> $GITHUB_OUTPUT
+            echo "platform=${{ github.event.client_payload.platform || 'all' }}" >> $GITHUB_OUTPUT
+            echo "thumbnail_url=${{ github.event.client_payload.thumbnail_url }}" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Display configuration
+        run: |
+          echo "Episode: ${{ steps.set-episode.outputs.episode }}"
+          echo "Platform: ${{ steps.set-episode.outputs.platform }}"
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: main/package-lock.json
+
+      - name: Install dependencies
+        run: cd main && npm ci
+
+      - name: Install ffmpeg
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Cache Whisper model
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/huggingface
+          key: whisper-model-large-v3
+
+      - name: Install faster-whisper
+        run: pip install faster-whisper
+
+      - name: Build TypeScript
+        run: cd main && npm run build
+
+      - name: Setup credentials
+        run: echo '${{ secrets.GOOGLE_SERVICE_ACCOUNT_JSON }}' > /tmp/gcp-credentials.json
+
+      - name: Generate short videos
+        working-directory: main
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GITHUB_TOKEN: ${{ secrets.RSS_REPO_TOKEN }}
+          REPLICATE_API_TOKEN: ${{ secrets.REPLICATE_API_TOKEN }}
+          SHORT_VIDEO_PLATFORMS: ${{ secrets.SHORT_VIDEO_PLATFORMS }}
+          REMOTION_REPO_OWNER: ${{ secrets.REMOTION_REPO_OWNER }}
+          REMOTION_REPO_NAME: ${{ secrets.REMOTION_REPO_NAME }}
+          GOOGLE_SERVICE_ACCOUNT_KEY: /tmp/gcp-credentials.json
+          GOOGLE_SHEETS_ID: ${{ secrets.GOOGLE_SHEETS_ID }}
+          EPISODE_NUMBER: ${{ steps.set-episode.outputs.episode }}
+          SHORT_DATA_URL: ${{ steps.set-episode.outputs.short_data_url }}
+          THUMBNAIL_URL: ${{ steps.set-episode.outputs.thumbnail_url }}
+          TARGET_PLATFORM: ${{ steps.set-episode.outputs.platform }}
+        run: node dist/scripts/generate-short-from-episode.js
+
+      - name: Cleanup credentials
+        if: always()
+        run: rm -f /tmp/gcp-credentials.json
+
+      - name: Delete old workflow runs
+        if: always()
+        env:
+          GH_TOKEN: ${{ secrets.CROSS_REPO_PAT }}
+        run: |
+          gh run list --repo ${{ github.repository }} --workflow "Daily Blend Short Videos" --json databaseId --jq '.[].databaseId' | while read id; do
+            if [ "$id" != "${{ github.run_id }}" ]; then
+              gh run delete "$id" --repo ${{ github.repository }} || true
+            fi
+          done

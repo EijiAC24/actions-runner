@@ -1,0 +1,97 @@
+name: AIニュースTODAY
+
+on:
+  schedule:
+    - cron: '30 19 * * *'  # 19:30 UTC = 04:30 JST
+  workflow_dispatch:
+    inputs:
+      skip_upload:
+        description: 'Skip uploading to hosting'
+        required: false
+        default: false
+        type: boolean
+
+env:
+  NODE_VERSION: '20'
+  PODCAST_ID: ainewstoday
+  TZ: Asia/Tokyo
+
+jobs:
+  generate-podcast:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout main project
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ github.repository_owner }}/AInewsToday
+          token: ${{ secrets.CROSS_REPO_PAT }}
+          path: 'main'
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: main/package-lock.json
+
+      - name: Install dependencies
+        run: cd main && npm ci
+
+      - name: Install ffmpeg
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg
+
+      - name: Build TypeScript
+        run: cd main && npm run build
+
+      - name: Setup credentials
+        run: echo '${{ secrets.GOOGLE_SERVICE_ACCOUNT_JSON }}' > /tmp/gcp-credentials.json
+
+      - name: Run podcast automation
+        working-directory: main
+        env:
+          PODCAST_ID: ${{ env.PODCAST_ID }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GOOGLE_SERVICE_ACCOUNT_KEY: /tmp/gcp-credentials.json
+          GOOGLE_SHEETS_ID: ${{ secrets.GOOGLE_SHEETS_ID }}
+          FTP_HOST: ${{ secrets.FTP_HOST }}
+          FTP_USER: ${{ secrets.FTP_USER }}
+          FTP_PASS: ${{ secrets.FTP_PASS }}
+          GITHUB_TOKEN: ${{ secrets.RSS_REPO_TOKEN }}
+          GITHUB_REPO: EijiAC24/podcast-network-rss
+          GITHUB_RSS_PATH: 'public/ainewstoday/podcast.xml'
+          SKIP_UPLOAD: ${{ inputs.skip_upload }}
+          YOUTUBE_CLIENT_ID: ${{ secrets.YOUTUBE_CLIENT_ID }}
+          YOUTUBE_CLIENT_SECRET: ${{ secrets.YOUTUBE_CLIENT_SECRET }}
+          YOUTUBE_REFRESH_TOKEN: ${{ secrets.YOUTUBE_REFRESH_TOKEN_AINEWSTODAY }}
+        run: npm start
+
+      - name: Cleanup credentials
+        if: always()
+        run: rm -f /tmp/gcp-credentials.json
+
+      - name: Commit RSS changes
+        if: success()
+        working-directory: main
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git fetch origin main
+          git reset --soft origin/main
+          git add output/rss/podcast.xml || true
+          git diff --staged --quiet || git commit -m "Update AIニュースTODAY RSS - $(date +%Y-%m-%d)"
+          git push || true
+
+      - name: Delete old workflow runs
+        if: always()
+        env:
+          GH_TOKEN: ${{ secrets.CROSS_REPO_PAT }}
+        run: |
+          gh run list --repo ${{ github.repository }} --workflow "AIニュースTODAY" --json databaseId --jq '.[].databaseId' | while read id; do
+            if [ "$id" != "${{ github.run_id }}" ]; then
+              gh run delete "$id" --repo ${{ github.repository }} || true
+            fi
+          done
