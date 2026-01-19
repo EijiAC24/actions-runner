@@ -110,7 +110,7 @@ jobs:
           REMOTION_REPO_OWNER: ${{ secrets.REMOTION_REPO_OWNER }}
           REMOTION_REPO_NAME: ${{ secrets.REMOTION_REPO_NAME }}
           GOOGLE_SERVICE_ACCOUNT_KEY: /tmp/gcp-credentials.json
-          GOOGLE_SHEETS_ID: ${{ secrets.GOOGLE_SHEETS_ID }}
+          GOOGLE_SHEETS_ID: ${{ secrets.GOOGLE_SHEETS_ID_DAILYBLEND }}
           EPISODE_NUMBER: ${{ steps.set-episode.outputs.episode }}
           SHORT_DATA_URL: ${{ steps.set-episode.outputs.short_data_url }}
           THUMBNAIL_URL: ${{ steps.set-episode.outputs.thumbnail_url }}
