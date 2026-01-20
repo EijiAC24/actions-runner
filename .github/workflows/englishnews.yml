@@ -57,7 +57,7 @@ jobs:
           FTP_HOST: ${{ secrets.FTP_HOST }}
           FTP_USER: ${{ secrets.FTP_USER }}
           FTP_PASS: ${{ secrets.FTP_PASS }}
-          GITHUB_TOKEN: ${{ secrets.RSS_REPO_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.CROSS_REPO_PAT }}
           GITHUB_REPO: EijiAC24/podcast-network-rss
           GITHUB_RSS_PATH: 'public/englishnews/podcast.xml'
           SKIP_UPLOAD: ${{ inputs.skip_upload }}
