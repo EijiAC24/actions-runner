@@ -101,7 +101,7 @@ jobs:
         working-directory: main
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-          GITHUB_TOKEN: ${{ secrets.RSS_REPO_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.CROSS_REPO_PAT }}
           REPLICATE_API_TOKEN: ${{ secrets.REPLICATE_API_TOKEN }}
           SHORT_VIDEO_PLATFORMS: ${{ secrets.SHORT_VIDEO_PLATFORMS }}
           REMOTION_REPO_OWNER: ${{ secrets.REMOTION_REPO_OWNER }}
