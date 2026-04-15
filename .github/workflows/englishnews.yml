@@ -72,9 +72,12 @@ jobs:
         run: |
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
+          cp output/rss/podcast.xml "${RUNNER_TEMP}/podcast.xml"
           git fetch origin main
-          git reset --soft origin/main
-          git add output/rss/podcast.xml || true
+          git reset --hard origin/main
+          mkdir -p output/rss
+          cp "${RUNNER_TEMP}/podcast.xml" output/rss/podcast.xml
+          git add output/rss/podcast.xml
           git diff --staged --quiet || git commit -m "Update 英語ニュース聞き流し RSS - $(date +%Y-%m-%d)"
           git push || true
 

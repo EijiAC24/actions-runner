@@ -72,9 +72,14 @@ jobs:
         run: |
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
+          # Snapshot the generated RSS before touching the tree
+          cp output/rss/podcast.xml "${RUNNER_TEMP}/podcast.xml"
+          # Align with latest origin/main so unrelated files aren't reverted
           git fetch origin main
-          git reset --soft origin/main
-          git add output/rss/podcast.xml || true
+          git reset --hard origin/main
+          mkdir -p output/rss
+          cp "${RUNNER_TEMP}/podcast.xml" output/rss/podcast.xml
+          git add output/rss/podcast.xml
           git diff --staged --quiet || git commit -m "Update AIニュースTODAY RSS - $(date +%Y-%m-%d)"
           git push || true
 
