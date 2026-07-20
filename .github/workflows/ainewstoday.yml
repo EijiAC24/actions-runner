@@ -1,8 +1,8 @@
 name: AIニュースTODAY
 
 on:
-  schedule:
-    - cron: '30 19 * * *'  # 19:30 UTC = 04:30 JST
+  # schedule disabled 2026-07-20: AIニュースTODAY自動配信を停止
+  # - cron: '30 19 * * *'  # 19:30 UTC = 04:30 JST
   workflow_dispatch:
     inputs:
       skip_upload:
